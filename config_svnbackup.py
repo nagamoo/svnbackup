@@ -9,3 +9,4 @@ LOG_DIR = os.path.dirname(__file__) + "/log"
 #print ROOT_DIR
 sys.path.append(ROOT_DIR)
 
+REPO_DIR = "/opt/svn/{0}"

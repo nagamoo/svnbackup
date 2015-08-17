@@ -7,11 +7,16 @@
 圧縮してS3にアップロード、
 アップ後、同一リポジトリが複数ある場合、2つ残してふるいの削除
 
+同日に複数回行った場合、同じ日付のバックアップが更新される。
+
+Paramator repository_name で複数リポジトリを指定可能。複数の場合、半角空白区切り
+指定なしで定義済リポジトリを対象。
 '''   
 
 import os, sys, datetime, commands
 import config_svnbackup as config 
 import lib.util as util 
+import shlex, subprocess
 import boto3
 
 
@@ -19,11 +24,23 @@ s3 = boto3.resource('s3')
 
 class SvnBackup:
     LIST_REPOS=[
-        "reponame",
     ]
     #reload(util)
     logger = util.getLogger()
     logger.debug("debug test") 
+
+
+    argvs = sys.argv  # コマンドライン引数を格納したリストの取得
+    argc = len(argvs) # 引数の個数
+    # デバッグプリント
+    if (argc != 1):
+        LIST_REPOS = []
+        for argval in argvs[1:]:
+            print argval
+            LIST_REPOS.append(argval)
+
+    print LIST_REPOS
+
 
     util.loggingLine()
     logger.info("実施日 {0} ".format( datetime.datetime.today()))
@@ -37,11 +54,17 @@ class SvnBackup:
         util.loggingLine()
         logger.info(repos)
 
+        repoPath = config.REPO_DIR.format(repos)
+        print repoPath
+        if os.path.isdir(repoPath) == False :
+            logger.error("Repository Path is Not Existed.  PATH: {0}".format(repoPath))
+            continue
+
         dumpfile = "/backup/svn/dump/{repos}_{yesterday}.dump".format(repos=repos, yesterday=yesterday)
         zipfile = "/backup/svn/dump/{repos}_{yesterday}.zip".format(repos=repos, yesterday=yesterday.strftime("%Y%m%d"))
 
         # dump 実行
-        dumpcmd="svnadmin dump /opt/svn/{repos} > {dumpfile}".format(repos=repos, dumpfile=dumpfile)
+        dumpcmd="svnadmin dump {repos} > {dumpfile}".format(repos=repoPath, dumpfile=dumpfile)
         #dumpcmd = [ "svnadmin", "dump", "/opt/svn/{0}".format(repos), "> {0}".format(dumpfile)  ]
         logger.info("{0}".format( datetime.datetime.today()))
         logger.info("{0}".format(dumpcmd))
